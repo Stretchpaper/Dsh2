@@ -5,7 +5,7 @@
         static void Main(string[] args)
         {
             var bot = new Bot();
-            bot.RunAsync()/*.ConfigureAwait(true)*/.GetAwaiter().GetResult();
+            bot.RunAsync().GetAwaiter().GetResult();
         }
     }
 }
