@@ -118,7 +118,6 @@ namespace Dsh
         public async Task Clear(InteractionContext ctx, [Option("count", "Кількість повідомлень, які потрібно видалити.")] long count)
         {
             await ctx.DeferAsync();
-            //await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("..."));
             if (count <= 0 || count > 100)
             {
                 var ssuccessMessage = await ctx.Channel.SendMessageAsync("Кількість повідомлень для видалення повинна бути в межах від 1 до 100.");
@@ -131,7 +130,7 @@ namespace Dsh
             foreach (var message in messages)
             {
                 await ctx.Channel.DeleteMessageAsync(message);
-                await Task.Delay(600); // Добавляем задержку в 1 секунду между каждым запросом удаления
+                await Task.Delay(600); 
             }
 
             var successMessage = await ctx.Channel.SendMessageAsync($"Успішно видалено {count} повідомлень.");

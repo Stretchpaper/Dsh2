@@ -53,7 +53,6 @@ namespace Dsh.Commands
             var myButton = new DiscordButtonComponent(ButtonStyle.Secondary, "1", elementsEmojis[0]);
             var myButton1 = new DiscordButtonComponent(ButtonStyle.Success, "2", elementsEmojis[1]);
             var myButton2 = new DiscordButtonComponent(ButtonStyle.Primary, "3", elementsEmojis[2]);
-            //var bruh = new kaminNoz();
             var emb = new DiscordMessageBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
 

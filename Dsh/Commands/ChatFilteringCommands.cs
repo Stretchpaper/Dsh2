@@ -110,7 +110,6 @@ namespace Dsh.Commands
             }
             else
             {
-                // Добавление слова в базу данных
                 MySqlCommand insertCommand = new MySqlCommand("INSERT INTO `wordslist` (`ServerID`, `word`) VALUES (@sID, @word);", db.GetConnection());
                 insertCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
                 insertCommand.Parameters.Add("@word", MySqlDbType.VarChar).Value = word;
@@ -118,12 +117,10 @@ namespace Dsh.Commands
                 int rowsAffected = insertCommand.ExecuteNonQuery();
                 if (rowsAffected > 0)
                 {
-                    // Слово успешно добавлено
                     await ctx.Channel.SendMessageAsync("Слово успішно додано.");
                 }
                 else
                 {
-                    // Возникла ошибка при добавлении слова
                     await ctx.Channel.SendMessageAsync("Помилка: Не вдалося додати слово.");
                 }
             }
