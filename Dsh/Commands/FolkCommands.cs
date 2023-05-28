@@ -28,18 +28,18 @@ namespace Dsh.Commands
             await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
                 .WithContent("..."));
 
-            var interactvity = ctx.Client.GetInteractivity(); //Getting the Interactivity Module
-            TimeSpan timer = TimeSpan.FromSeconds(TimeLimit); //Converting my time parameter to a timespan variable
+            var interactvity = ctx.Client.GetInteractivity();
+            TimeSpan timer = TimeSpan.FromSeconds(TimeLimit); 
 
             DiscordEmoji[] optionEmojis = { DiscordEmoji.FromName(ctx.Client, ":one:", false),
                                             DiscordEmoji.FromName(ctx.Client, ":two:", false),
                                             DiscordEmoji.FromName(ctx.Client, ":three:", false),
-                                            DiscordEmoji.FromName(ctx.Client, ":four:", false) }; //Array to store discord emojis
+                                            DiscordEmoji.FromName(ctx.Client, ":four:", false) }; 
 
             string optionsString = optionEmojis[0] + " | " + Option1 + "\n" +
                                    optionEmojis[1] + " | " + Option2 + "\n" +
                                    optionEmojis[2] + " | " + Option3 + "\n" +
-                                   optionEmojis[3] + " | " + Option4; //String to display each option with its associated emojis
+                                   optionEmojis[3] + " | " + Option4; 
 
             var pollMessage = new DiscordMessageBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
@@ -48,22 +48,22 @@ namespace Dsh.Commands
                 .WithDescription(optionsString)
             ); //Making the Poll message
 
-            var putReactOn = await ctx.Channel.SendMessageAsync(pollMessage); //Storing the await command in a variable
+            var putReactOn = await ctx.Channel.SendMessageAsync(pollMessage); 
 
             foreach (var emoji in optionEmojis)
             {
                 await putReactOn.CreateReactionAsync(emoji);
-                Thread.Sleep(1000); // Adding a 1 second delay between each reaction
+                Thread.Sleep(1000); 
             }
 
-            var result = await interactvity.CollectReactionsAsync(putReactOn, timer); //Collects all the emojis and how many people reacted to those emojis
+            var result = await interactvity.CollectReactionsAsync(putReactOn, timer); 
 
-            int count1 = 0; //Counts for each emoji
+            int count1 = 0; 
             int count2 = 0;
             int count3 = 0;
             int count4 = 0;
 
-            foreach (var emoji in result) //Foreach loop to go through all the emojis in the message and filter out the 4 emojis we need
+            foreach (var emoji in result) 
             {
                 if (emoji.Emoji == optionEmojis[0])
                 {
@@ -89,7 +89,7 @@ namespace Dsh.Commands
                                    optionEmojis[1] + ": " + count2 + " Голосів \n" +
                                    optionEmojis[2] + ": " + count3 + " Голосів \n" +
                                    optionEmojis[3] + ": " + count4 + " Голосів \n\n" +
-                                   "Загальна кількість голосів " + totalVotes; //String to show the results of the poll
+                                   "Загальна кількість голосів " + totalVotes; 
 
             var resultsMessage = new DiscordMessageBuilder()
                 .AddEmbed(new DiscordEmbedBuilder()
@@ -127,7 +127,6 @@ namespace Dsh.Commands
                     break;
             }
 
-            // Замінюємо символи нового рядка (\n) на реальні переноси рядків
             message = message.Replace("\\n", "\n");
 
             var builder = new DiscordMessageBuilder()
