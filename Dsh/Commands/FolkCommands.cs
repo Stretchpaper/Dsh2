@@ -101,44 +101,6 @@ namespace Dsh.Commands
             await ctx.Channel.SendMessageAsync(resultsMessage);
         }
 
-        [SlashCommand("createEmbed", "Створити повідомлення з під заголовком")]
-        public async Task CreateEmbed(InteractionContext ctx, [Option("Заголовок", "Ваш заголовок")] string title,
-                                                            [Option("Повідомлення", "Текст повідомлення")] string message,
-                                                            [Choice("Зелений", "green")]
-                                                            [Choice("Червоний", "red")]
-                                                            [Choice("Жовтий", "yellow")]
-                                                            [Option("Колір", "Колір повідомлення")] string color)
-        {
-            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
-            .WithContent("..."));
-
-            DiscordColor discordColor = DiscordColor.White;
-
-            switch (color)
-            {
-                case "green":
-                    discordColor = DiscordColor.Green;
-                    break;
-                case "red":
-                    discordColor = DiscordColor.Red;
-                    break;
-                case "yellow":
-                    discordColor = DiscordColor.Yellow;
-                    break;
-            }
-
-            // Замінюємо символи нового рядка (\n) на реальні переноси рядків
-            message = message.Replace("\\n", "\n");
-
-            var builder = new DiscordMessageBuilder()
-                .WithContent(title)
-                .WithEmbed(new DiscordEmbedBuilder()
-                    .WithDescription(message)
-                    .WithColor(discordColor)
-                    .Build());
-
-            await ctx.Channel.SendMessageAsync(builder);
-        }
 
     }
 }
