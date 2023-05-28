@@ -105,7 +105,7 @@ namespace Dsh.Commands
 
             if (wordCount > 0)
             {
-                // Слово уже присутствует в базе данных
+                
                 await ctx.Channel.SendMessageAsync("Помилка: Слово вже існує.");
             }
             else
