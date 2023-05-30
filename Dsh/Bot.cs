@@ -5,6 +5,8 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
+using DSharpPlus.Lavalink;
+using DSharpPlus.Net;
 using DSharpPlus.SlashCommands;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
@@ -53,9 +55,28 @@ namespace Dsh
             slashCommandsConfig.RegisterCommands<AdminCommands>();
             slashCommandsConfig.RegisterCommands<ChatFilteringCommands>();
             slashCommandsConfig.RegisterCommands<FolkCommands>();
+            slashCommandsConfig.RegisterCommands<MusicCommands>();
+            
+            var endpoint = new ConnectionEndpoint
+            {
+                Hostname = "suki.nathan.to",
+                Port = 443,
+                Secured = true
+            };
+
+            var lavlainkConfig = new LavalinkConfiguration
+            {
+                Password = "adowbongmanacc",
+                RestEndpoint = endpoint,
+                SocketEndpoint = endpoint
+            };
+
+            var lavalink = Client.UseLavalink();
 
             Client.Ready += OnClientReady;
+
             await Client.ConnectAsync();
+            await lavalink.ConnectAsync(lavlainkConfig);
             await Task.Delay(-1);
         }
 
@@ -63,6 +84,7 @@ namespace Dsh
         {
             return Task.CompletedTask;
         }
+
 
 
         private async Task DellunneedntMes(DiscordClient sender, MessageCreateEventArgs e)
