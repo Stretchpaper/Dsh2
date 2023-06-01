@@ -155,5 +155,32 @@ namespace Dsh.Commands
                 await ctx.Channel.SendMessageAsync($"Слово \"{word}\" не знайдено у списку заборонених слів.");
             }
         }
+
+        [SlashCommand("removeall", "Видалити всі слова зі списку заборонених слів")]
+        public async Task RemoveAllWords(InteractionContext ctx)
+        {
+            await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("..."));
+
+            ulong serverId = ctx.Guild.Id;
+
+            DB db = new DB();
+            db.OpenConnection();
+
+            MySqlCommand command = new MySqlCommand("DELETE FROM `wordslist` WHERE `ServerID` = @sID;", db.GetConnection());
+            command.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
+
+            int rowsAffected = command.ExecuteNonQuery();
+
+            db.CloseConnection();
+
+            if (rowsAffected > 0)
+            {
+                await ctx.Channel.SendMessageAsync("Усі слова видалено зі списку заборонених слів.");
+            }
+            else
+            {
+                await ctx.Channel.SendMessageAsync("Список заборонених слів уже порожній.");
+            }
+        }
     }
 }

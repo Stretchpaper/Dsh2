@@ -6,9 +6,11 @@ using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.Lavalink;
+using DSharpPlus.Lavalink.EventArgs;
 using DSharpPlus.Net;
 using DSharpPlus.SlashCommands;
 using MySql.Data.MySqlClient;
+using MySqlX.XDevAPI;
 using Newtonsoft.Json;
 using System;
 using System.IO;
@@ -48,6 +50,7 @@ namespace Dsh
             Client.GuildMemberAdded += Discord_GuildMemberAdded;
             Client.ComponentInteractionCreated += ButtonPreesReaction;
             Client.MessageCreated += DellunneedntMes;
+            Client.VoiceStateUpdated += OnBotVoiceStateUpdated;
 
             var slashCommandsConfig = Client.UseSlashCommands();
 
@@ -83,6 +86,35 @@ namespace Dsh
         private Task OnClientReady(DiscordClient client, ReadyEventArgs e)
         {
             return Task.CompletedTask;
+        }
+
+        public async Task OnBotVoiceStateUpdated(DiscordClient client, VoiceStateUpdateEventArgs e)
+        {
+            var botVC = e.Guild.CurrentMember.VoiceState?.Channel;
+
+            if (botVC == null)
+            {
+                ulong serverId = e.Guild.Id;
+
+                DB db = new DB();
+                try
+                {
+                    db.OpenConnection();
+
+                    MySqlCommand deleteCommand = new MySqlCommand("DELETE FROM `musictable` WHERE `ServerID` = @sID;", db.GetConnection());
+                    deleteCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
+                    deleteCommand.ExecuteNonQuery();
+                }
+                catch (MySqlException ex)
+                {
+                    Console.WriteLine($"Помилка бази даних: {ex.Message}");
+                    // Обробка помилки бази даних
+                }
+                finally
+                {
+                    db.CloseConnection();
+                }
+            }
         }
 
 
