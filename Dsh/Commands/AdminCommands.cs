@@ -130,7 +130,7 @@ namespace Dsh
             foreach (var message in messages)
             {
                 await ctx.Channel.DeleteMessageAsync(message);
-                await Task.Delay(600); 
+                await Task.Delay(1000); 
             }
 
             var successMessage = await ctx.Channel.SendMessageAsync($"Успішно видалено {count} повідомлень.");

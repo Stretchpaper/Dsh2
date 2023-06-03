@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dsh.Extennal_Classes;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Dsh.Commands
 {
@@ -98,6 +99,18 @@ namespace Dsh.Commands
 
                     await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
                         .AddEmbed(endemb));
+
+                    // Отримати наступну пісню з бази даних
+                    MySqlCommand selectNextSongCommand = new MySqlCommand("SELECT `SongName` FROM `musictable` WHERE `ServerID` = @sID ORDER BY `QueuePos` ASC LIMIT 1;", db.GetConnection());
+                    selectNextSongCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
+
+                    string nextSongName = selectNextSongCommand.ExecuteScalar() as string;
+
+                    if (nextSongName != null)
+                    {
+                        // Виконати логіку для відтворення пісні з використанням вашої бібліотеки аудіо
+                        await PlaySong(ctx, nextSongName);
+                    }
                 }
                 else
                 {
@@ -128,6 +141,45 @@ namespace Dsh.Commands
                 db.CloseConnection();
             }
         }
+
+        private async Task PlaySong(InteractionContext ctx, string songName)
+        {
+            var userVC = ctx.Member.VoiceState?.Channel;
+            var lavalinkInstance = ctx.Client.GetLavalink();
+            var node = lavalinkInstance.ConnectedNodes.Values.First();
+            var conn = node.GetGuildConnection(ctx.Guild);
+            var searchQuery = await node.Rest.GetTracksAsync(songName);
+            var musicTrack = searchQuery.Tracks.FirstOrDefault();
+
+            if (musicTrack == null)
+            {
+                var errorr = new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Title = "Помилка",
+                    Description = $"Пісню '{songName}' не знайдено."
+                };
+
+                await ctx.Channel.SendMessageAsync(embed: errorr);
+                return;
+            }
+
+            await conn.PlayAsync(musicTrack);
+
+            string musicDescription = $"Now Playing: {musicTrack.Title} \n" +
+                                      $"Author: {musicTrack.Author} \n" +
+                                      $"URL: {musicTrack.Uri}";
+
+            var nowPlayingEmbed = new DiscordEmbedBuilder()
+            {
+                Color = DiscordColor.Purple,
+                Title = $"Successfully joined channel {userVC.Name} and playing music",
+                Description = musicDescription
+            };
+
+            await ctx.Channel.SendMessageAsync(embed: nowPlayingEmbed);
+        }
+
 
 
         /*

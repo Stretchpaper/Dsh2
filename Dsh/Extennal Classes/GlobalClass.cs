@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Query.Internal;
+using System;
 using System.Collections.Generic;
 
 namespace Dsh.Extennal_Classes
@@ -8,6 +9,8 @@ namespace Dsh.Extennal_Classes
         public string UserRes { get; set; }
         public string BotRes { get; set; }
         public List<string> bedWords = new List<string>();
+
+
         public GlobalClass()
         {
             var ranbot = new Random().Next(1, 4);

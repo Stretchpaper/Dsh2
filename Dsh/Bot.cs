@@ -1,6 +1,7 @@
 ﻿using Dsh.Commands;
 using Dsh.Extennal_Classes;
 using DSharpPlus;
+using DSharpPlus.AsyncEvents;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
@@ -10,12 +11,13 @@ using DSharpPlus.Lavalink.EventArgs;
 using DSharpPlus.Net;
 using DSharpPlus.SlashCommands;
 using MySql.Data.MySqlClient;
-using MySqlX.XDevAPI;
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Dsh
 {
@@ -23,6 +25,8 @@ namespace Dsh
     {
         public DiscordClient Client { get; set; }
         public InteractivityExtension Extension { get; set; }
+
+        public event AsyncEventHandler<LavalinkGuildConnection, TrackFinishEventArgs> PlaybackFinished;
 
         public async Task RunAsync()
         {
@@ -50,7 +54,8 @@ namespace Dsh
             Client.GuildMemberAdded += Discord_GuildMemberAdded;
             Client.ComponentInteractionCreated += ButtonPreesReaction;
             Client.MessageCreated += DellunneedntMes;
-            Client.VoiceStateUpdated += OnBotVoiceStateUpdated;
+            //Client.VoiceStateUpdated += OnBotVoiceStateUpdated;
+            
 
             var slashCommandsConfig = Client.UseSlashCommands();
 
@@ -62,20 +67,21 @@ namespace Dsh
             
             var endpoint = new ConnectionEndpoint
             {
-                Hostname = "suki.nathan.to",
+                Hostname = "ssl.horizxon.studio",
                 Port = 443,
                 Secured = true
             };
 
             var lavlainkConfig = new LavalinkConfiguration
             {
-                Password = "adowbongmanacc",
+                Password = "horizxon.studio",
                 RestEndpoint = endpoint,
                 SocketEndpoint = endpoint
             };
 
             var lavalink = Client.UseLavalink();
 
+            
             Client.Ready += OnClientReady;
 
             await Client.ConnectAsync();
@@ -87,7 +93,7 @@ namespace Dsh
         {
             return Task.CompletedTask;
         }
-
+        /*
         public async Task OnBotVoiceStateUpdated(DiscordClient client, VoiceStateUpdateEventArgs e)
         {
             var botVC = e.Guild.CurrentMember.VoiceState?.Channel;
@@ -116,9 +122,7 @@ namespace Dsh
                 }
             }
         }
-
-
-
+        */
         private async Task DellunneedntMes(DiscordClient sender, MessageCreateEventArgs e)
         {
             var message = e.Message;
