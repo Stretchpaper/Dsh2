@@ -1,23 +1,19 @@
 ﻿using Dsh.Commands;
 using Dsh.Extennal_Classes;
 using DSharpPlus;
-using DSharpPlus.AsyncEvents;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.Lavalink;
-using DSharpPlus.Lavalink.EventArgs;
 using DSharpPlus.Net;
 using DSharpPlus.SlashCommands;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using System;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Dsh
 {
@@ -25,9 +21,6 @@ namespace Dsh
     {
         public DiscordClient Client { get; set; }
         public InteractivityExtension Extension { get; set; }
-
-        public event AsyncEventHandler<LavalinkGuildConnection, TrackFinishEventArgs> PlaybackFinished;
-
         public async Task RunAsync()
         {
             var json = string.Empty;
@@ -36,6 +29,7 @@ namespace Dsh
                 json = await sr.ReadToEndAsync();
 
             var configJSON = JsonConvert.DeserializeObject<ConfigJSON>(json);
+            
 
             var config = new DiscordConfiguration()
             {
@@ -54,8 +48,6 @@ namespace Dsh
             Client.GuildMemberAdded += Discord_GuildMemberAdded;
             Client.ComponentInteractionCreated += ButtonPreesReaction;
             Client.MessageCreated += DellunneedntMes;
-            //Client.VoiceStateUpdated += OnBotVoiceStateUpdated;
-            
 
             var slashCommandsConfig = Client.UseSlashCommands();
 
@@ -80,8 +72,8 @@ namespace Dsh
             };
 
             var lavalink = Client.UseLavalink();
-
             
+
             Client.Ready += OnClientReady;
 
             await Client.ConnectAsync();
@@ -93,36 +85,9 @@ namespace Dsh
         {
             return Task.CompletedTask;
         }
-        /*
-        public async Task OnBotVoiceStateUpdated(DiscordClient client, VoiceStateUpdateEventArgs e)
-        {
-            var botVC = e.Guild.CurrentMember.VoiceState?.Channel;
 
-            if (botVC == null)
-            {
-                ulong serverId = e.Guild.Id;
 
-                DB db = new DB();
-                try
-                {
-                    db.OpenConnection();
-
-                    MySqlCommand deleteCommand = new MySqlCommand("DELETE FROM `musictable` WHERE `ServerID` = @sID;", db.GetConnection());
-                    deleteCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
-                    deleteCommand.ExecuteNonQuery();
-                }
-                catch (MySqlException ex)
-                {
-                    Console.WriteLine($"Помилка бази даних: {ex.Message}");
-                    // Обробка помилки бази даних
-                }
-                finally
-                {
-                    db.CloseConnection();
-                }
-            }
-        }
-        */
+        //other
         private async Task DellunneedntMes(DiscordClient sender, MessageCreateEventArgs e)
         {
             var message = e.Message;
