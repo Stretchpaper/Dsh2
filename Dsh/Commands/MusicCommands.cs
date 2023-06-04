@@ -14,6 +14,7 @@ using Dsh.Extennal_Classes;
 using DSharpPlus.AsyncEvents;
 using DSharpPlus.Lavalink.EventArgs;
 using System.Drawing;
+using DSharpPlus.EventArgs;
 
 namespace Dsh.Commands
 {
@@ -29,45 +30,48 @@ namespace Dsh.Commands
             //PRE-EXECUTION CHECKS
             if (ctx.Member.VoiceState == null || userVC == null)
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Please enter a VC!!!"));
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Please enter a VC!!!")).ConfigureAwait(false);
                 return;
             }
 
             if (!lavalinkInstance.ConnectedNodes.Any())
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Connection is not Established!!!"));
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Connection is not Established!!!")).ConfigureAwait(false);
                 return;
             }
 
             if (userVC.Type != ChannelType.Voice)
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Please enter a valid VC!!!"));
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Please enter a valid VC!!!")).ConfigureAwait(false);
                 return;
             }
 
             //Connecting to the VC and playing music
             var node = lavalinkInstance.ConnectedNodes.Values.First();
-            await node.ConnectAsync(userVC);
+            await node.ConnectAsync(userVC).ConfigureAwait(false);
 
             var conn = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
             if (conn == null)
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Lavalink Failed to connect!!!"));
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Lavalink Failed to connect!!!")).ConfigureAwait(false);
                 return;
             }
 
             var searchQuery = await node.Rest.GetTracksAsync(query);
             if (searchQuery.LoadResultType == LavalinkLoadResultType.NoMatches || searchQuery.LoadResultType == LavalinkLoadResultType.LoadFailed)
             {
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Failed to find music with query: {query}"));
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent($"Failed to find music with query: {query}")).ConfigureAwait(false);
                 return;
             }
 
+            ulong serverId = ctx.Guild.Id;
+
+            var musicTrack = searchQuery.Tracks.First();
+
+            string queuePosstr = string.Empty;
             if (conn.CurrentState.CurrentTrack == null)
             {
-                var musicTrack = searchQuery.Tracks.First();
-
-                await conn.PlayAsync(musicTrack);
+                await conn.PlayAsync(musicTrack).ConfigureAwait(false);
 
                 string musicDescription = $"Now Playing: {musicTrack.Title} \n" +
                                             $"Author: {musicTrack.Author} \n" +
@@ -80,13 +84,86 @@ namespace Dsh.Commands
                     Description = musicDescription
                 };
 
-                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(nowPlayingEmbed));
+                await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().AddEmbed(nowPlayingEmbed)).ConfigureAwait(false);
             }
             else
             {
-               
+                DB db = new DB();
+                try
+                {
+                    db.OpenConnection();
+
+                    MySqlCommand selectCommand = new MySqlCommand("SELECT COUNT(*) FROM `musictable` WHERE `ServerID` = @sID;", db.GetConnection());
+                    selectCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
+
+                    int wordCount = Convert.ToInt32(selectCommand.ExecuteScalar());
+
+                    int queuePos = wordCount + 1;
+
+                    MySqlCommand insertCommand = new MySqlCommand("INSERT INTO `musictable` (`QueuePos`, `ServerID`, `SongName`) VALUES (@pos ,@sID, @song);", db.GetConnection());
+                    insertCommand.Parameters.Add("@pos", MySqlDbType.Int64).Value = queuePos;
+                    insertCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
+                    insertCommand.Parameters.Add("@song", MySqlDbType.VarChar).Value = searchQuery.Tracks.First().Title;
+
+                    queuePosstr = queuePos.ToString();
+
+                    int rowsAffected = insertCommand.ExecuteNonQuery();
+                    if (rowsAffected > 0)
+                    {
+                        var endemb = new DiscordEmbedBuilder()
+                        {
+                            Color = DiscordColor.Green,
+                            Title = "Успішно"
+                        };
+
+                        await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                            .AddEmbed(endemb)).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        var errorr = new DiscordEmbedBuilder()
+                        {
+                            Color = DiscordColor.Red,
+                            Title = "Помилка"
+                        };
+
+                        await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                            .AddEmbed(errorr)).ConfigureAwait(false);
+                    }
+                }
+                catch (MySqlException ex)
+                {
+                    Console.WriteLine($"Помилка бази даних: {ex.Message}");
+                    var errorr = new DiscordEmbedBuilder()
+                    {
+                        Color = DiscordColor.Red,
+                        Title = "Помилка"
+                    };
+
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                        .AddEmbed(errorr)).ConfigureAwait(false);
+                }
+                finally
+                {
+                    string musicDescription = $"Song: {musicTrack.Title}\n" +
+                                              $"Author: {musicTrack.Author}\n" +
+                                              $"Queue position: {queuePosstr}";
+                    var AddQRforPlay = new DiscordEmbedBuilder()
+                    {
+                        Color = DiscordColor.Purple,
+                        Title = $"Song add to queue",
+                        Description = musicDescription
+                    };
+
+                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                        .AddEmbed(AddQRforPlay)).ConfigureAwait(false);
+                    db.CloseConnection();
+                }
             }
         }
+
+
+
 
         [SlashCommand("pause", "Pauses the currently playing music")]
         public async Task PauseMusic(InteractionContext ctx)
@@ -265,11 +342,32 @@ namespace Dsh.Commands
             await conn.StopAsync();
             await conn.DisconnectAsync();
 
+            ulong serverId = ctx.Guild.Id;
+
+            DB db = new DB();
+            try
+            {
+                db.OpenConnection();
+
+                MySqlCommand deleteCommand = new MySqlCommand("DELETE FROM `musictable` WHERE `ServerID` = @sID;", db.GetConnection());
+                deleteCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = serverId;
+                deleteCommand.ExecuteNonQuery();
+            }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine($"Помилка бази даних: {ex.Message}");
+                // Обробка помилки бази даних
+            }
+            finally
+            {
+                db.CloseConnection();
+            }
+
             var stopEmbed = new DiscordEmbedBuilder()
             {
                 Color = DiscordColor.Red,
                 Title = "Stopped the Track",
-                Description = "Successfully disconnected from the voice channel"
+                Description = "Successfully disconnected from the voice channel and cleared the music queue"
             };
 
             await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
