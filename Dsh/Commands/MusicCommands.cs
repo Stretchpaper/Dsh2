@@ -1,32 +1,80 @@
-﻿using DSharpPlus;
-using DSharpPlus.CommandsNext.Attributes;
-using DSharpPlus.CommandsNext;
+﻿using Dsh.Extennal_Classes;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Lavalink;
 using DSharpPlus.SlashCommands;
 using MySql.Data.MySqlClient;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Dsh.Extennal_Classes;
-using DSharpPlus.AsyncEvents;
-using DSharpPlus.Lavalink.EventArgs;
-using System.Drawing;
-using DSharpPlus.EventArgs;
 
 namespace Dsh.Commands
 {
     [SlashCommandGroup("music", "Music commands")]
     public class MusicCommands : ApplicationCommandModule
     {
+        public DiscordChannel GLuserVC;
+        private ulong GLSeverID;
+        private InteractionContext GLctx;
+
+        private async Task Conn_PlaybackFinished(LavalinkGuildConnection sender, DSharpPlus.Lavalink.EventArgs.TrackFinishEventArgs e)
+        {
+            DB db = new DB();
+            try
+            {
+                db.OpenConnection();
+
+                MySqlCommand selectCommand = new MySqlCommand("SELECT `SongName` FROM `musictable` WHERE `ServerID` = @sID AND `QueuePos` = 1;", db.GetConnection());
+                selectCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = GLSeverID;
+
+                string songName = selectCommand.ExecuteScalar() as string;
+
+                if (string.IsNullOrEmpty(songName))
+                {
+                    return;
+                }
+
+                MySqlCommand updateCommand = new MySqlCommand("UPDATE `musictable` SET `QueuePos` = `QueuePos` - 1 WHERE `ServerID` = @sID;", db.GetConnection());
+                updateCommand.Parameters.Add("@sID", MySqlDbType.VarChar).Value = GLSeverID;
+                updateCommand.ExecuteNonQuery();
+
+                string musicDescription = $"Now Playing: {songName}";
+
+                var nowPlayingEmbed = new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Purple,
+                    Title = $"Successfully joined channel {GLuserVC.Name} and playing music",
+                    Description = musicDescription
+                };
+
+                await GLctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                    .AddEmbed(nowPlayingEmbed)).ConfigureAwait(false);
+            }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine($"Помилка бази даних: {ex.Message}");
+                var errorr = new DiscordEmbedBuilder()
+                {
+                    Color = DiscordColor.Red,
+                    Title = "Помилка"
+                };
+
+                await GLctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
+                    .AddEmbed(errorr)).ConfigureAwait(false);
+            }
+            finally
+            {
+                db.CloseConnection();
+            }
+        }
+
         [SlashCommand("play", "Plays music in a voice channel")]
         public async Task PlayMusic(InteractionContext ctx, [Option("query", "The search query or URL")] string query)
         {
             var userVC = ctx.Member.VoiceState.Channel;
             var lavalinkInstance = ctx.Client.GetLavalink();
 
+            GLctx = ctx;
             //PRE-EXECUTION CHECKS
             if (ctx.Member.VoiceState == null || userVC == null)
             {
@@ -51,6 +99,8 @@ namespace Dsh.Commands
             await node.ConnectAsync(userVC).ConfigureAwait(false);
 
             var conn = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+            conn.PlaybackFinished += Conn_PlaybackFinished;
+
             if (conn == null)
             {
                 await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder().WithContent("Lavalink Failed to connect!!!")).ConfigureAwait(false);
@@ -110,14 +160,18 @@ namespace Dsh.Commands
                     int rowsAffected = insertCommand.ExecuteNonQuery();
                     if (rowsAffected > 0)
                     {
-                        var endemb = new DiscordEmbedBuilder()
+                        string musicDescription = $"Song: {musicTrack.Title}\n" +
+                                                  $"Author: {musicTrack.Author}\n" +
+                                                  $"Queue position: {queuePosstr}";
+                        var AddQRforPlay = new DiscordEmbedBuilder()
                         {
-                            Color = DiscordColor.Green,
-                            Title = "Успішно"
+                            Color = DiscordColor.Purple,
+                            Title = $"Song add to queue",
+                            Description = musicDescription
                         };
 
                         await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
-                            .AddEmbed(endemb)).ConfigureAwait(false);
+                            .AddEmbed(AddQRforPlay)).ConfigureAwait(false);
                     }
                     else
                     {
@@ -145,24 +199,10 @@ namespace Dsh.Commands
                 }
                 finally
                 {
-                    string musicDescription = $"Song: {musicTrack.Title}\n" +
-                                              $"Author: {musicTrack.Author}\n" +
-                                              $"Queue position: {queuePosstr}";
-                    var AddQRforPlay = new DiscordEmbedBuilder()
-                    {
-                        Color = DiscordColor.Purple,
-                        Title = $"Song add to queue",
-                        Description = musicDescription
-                    };
-
-                    await ctx.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource, new DiscordInteractionResponseBuilder()
-                        .AddEmbed(AddQRforPlay)).ConfigureAwait(false);
                     db.CloseConnection();
                 }
             }
         }
-
-
 
 
         [SlashCommand("pause", "Pauses the currently playing music")]
