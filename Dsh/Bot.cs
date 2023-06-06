@@ -8,6 +8,7 @@ using DSharpPlus.Interactivity.Extensions;
 using DSharpPlus.Lavalink;
 using DSharpPlus.Net;
 using DSharpPlus.SlashCommands;
+using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using System;
@@ -29,7 +30,7 @@ namespace Dsh
                 json = await sr.ReadToEndAsync();
 
             var configJSON = JsonConvert.DeserializeObject<ConfigJSON>(json);
-            
+
 
             var config = new DiscordConfiguration()
             {
@@ -37,6 +38,7 @@ namespace Dsh
                 Token = configJSON.Token,
                 TokenType = TokenType.Bot,
                 AutoReconnect = true,
+                MinimumLogLevel = LogLevel.Debug
             };
 
             Client = new DiscordClient(config);
